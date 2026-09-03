@@ -1,0 +1,49 @@
+{
+  "name": "host-age",
+  "version": "1.0.0",
+  "description": "Host-Age hosting management platform backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed:admins": "node scripts/seed-admins.js"
+  },
+  "keywords": [
+    "hosting",
+    "domains",
+    "email-hosting",
+    "billing"
+  ],
+  "author": "Host-Age",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.18.1",
+    "bcryptjs": "^3.0.3",
+    "bull": "^4.16.5",
+    "cheerio": "^1.2.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.3.0",
+    "mongoose": "^9.7.0",
+    "multer": "^2.1.1",
+    "node-cron": "^4.6.0",
+    "openai": "^6.42.0",
+    "otp-generator": "^4.0.1",
+    "pg": "^8.21.0",
+    "razorpay": "^2.9.6",
+    "resend": "^6.17.2",
+    "sequelize": "^6.37.8",
+    "stripe": "^22.2.0",
+    "twilio": "^6.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
