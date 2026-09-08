@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/hostagei/Host-Age-Backend/
+    - export DEPLOYPATH=/home/hostagei/host-age-backendd/
     - /bin/cp -R ./* $DEPLOYPATH
