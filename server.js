@@ -53,36 +53,30 @@ const app = express();
 /* ================= MIDDLEWARE ================= */
 
 const allowedOrigins = [
+  "https://host-age.in",
+  "https://www.host-age.in",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3001",
   "http://127.0.0.1:3002",
-
-  // Production
-  "https://host-age.in",
-  "https://www.host-age.in",
-  "https://api.host-age.in",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Server-to-server / curl / health-check requests
+      // Server-to-server / curl requests
       if (!origin) {
         return callback(null, true);
       }
 
-      // Allowed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // Don't crash/reject the Express request with an exception.
-      // Simply don't send CORS headers.
-      console.log("⚠️ CORS origin not in allowlist:", origin);
-      return callback(null, false);
+      console.log("❌ CORS BLOCKED:", origin);
+      return callback(new Error("Not allowed by CORS"));
     },
 
     credentials: true,
@@ -141,10 +135,23 @@ const validateEmail = (email) => {
 
 /* ================= HEALTH CHECK ================= */
 
+// ================= HEALTH CHECK =================
+
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
     message: "Host-Age Backend Running",
+    environment: process.env.NODE_ENV || "production",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "operational",
+    service: "Host-Age Backend",
+    timestamp: new Date().toISOString(),
   });
 });
 
