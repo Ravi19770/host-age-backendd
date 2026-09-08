@@ -60,7 +60,7 @@ const allowedOrigins = [
   "http://127.0.0.1:3001",
   "http://127.0.0.1:3002",
 
-   // Production
+  // Production
   "https://host-age.in",
   "https://www.host-age.in",
 ];
@@ -68,21 +68,39 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests without Origin, e.g. curl/Postman
+      // Allow requests without Origin
       if (!origin) {
         return callback(null, true);
       }
 
+      // Allow known frontend origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
       console.log("❌ CORS BLOCKED:", origin);
-      return callback(new Error("Not allowed by CORS"));
+
+      // Do NOT throw an error for CORS
+      return callback(null, false);
     },
+
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
+    optionsSuccessStatus: 204,
   })
 );
 
@@ -791,29 +809,65 @@ const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`🌐 http://localhost:${PORT}`);
     console.log("======================================");
 });
-
 server.on("listening", () => {
-    const address = server.address();
+  const address = server.address();
 
-    console.log("✅ SERVER LISTENING");
-    console.log("📡 Address:", address);
+  console.log("======================================");
+  console.log("✅ SERVER LISTENING");
+  console.log("📡 Address:", address);
+  console.log("======================================");
 });
 
 server.on("error", (error) => {
-    console.error("❌ SERVER ERROR:");
-    console.error(error);
+  console.error("======================================");
+  console.error("❌ SERVER ERROR");
+  console.error("Code:", error.code);
+  console.error("Message:", error.message);
+  console.error(error);
+  console.error("======================================");
+});
+
+server.on("close", () => {
+  console.error("⚠️ HTTP SERVER CLOSED");
 });
 
 process.on("uncaughtException", (error) => {
-    console.error("❌ UNCAUGHT EXCEPTION:");
-    console.error(error);
+  console.error("======================================");
+  console.error("❌ UNCAUGHT EXCEPTION");
+  console.error(error);
+  console.error("======================================");
 });
 
 process.on("unhandledRejection", (reason) => {
-    console.error("❌ UNHANDLED REJECTION:");
-    console.error(reason);
+  console.error("======================================");
+  console.error("❌ UNHANDLED REJECTION");
+  console.error(reason);
+  console.error("======================================");
+});
+
+process.on("beforeExit", (code) => {
+  console.error("⚠️ NODE BEFORE EXIT");
+  console.error("Exit Code:", code);
 });
 
 process.on("exit", (code) => {
-    console.error("⚠️ NODE PROCESS EXITED:", code);
+  console.error("⚠️ NODE PROCESS EXITED");
+  console.error("Exit Code:", code);
 });
+
+process.on("SIGINT", () => {
+  console.error("⚠️ SIGINT RECEIVED");
+});
+
+process.on("SIGTERM", () => {
+  console.error("⚠️ SIGTERM RECEIVED");
+});
+
+process.on("SIGHUP", () => {
+  console.error("⚠️ SIGHUP RECEIVED");
+});
+
+// Temporary heartbeat - server alive check
+setInterval(() => {
+  console.log("💓 HOST-AGE SERVER ALIVE:", new Date().toISOString());
+}, 10000);
