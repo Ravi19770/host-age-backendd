@@ -63,24 +63,25 @@ const allowedOrigins = [
   // Production
   "https://host-age.in",
   "https://www.host-age.in",
+  "https://api.host-age.in",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests without Origin
+      // Server-to-server / curl / health-check requests
       if (!origin) {
         return callback(null, true);
       }
 
-      // Allow known frontend origins
+      // Allowed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      console.log("❌ CORS BLOCKED:", origin);
-
-      // Do NOT throw an error for CORS
+      // Don't crash/reject the Express request with an exception.
+      // Simply don't send CORS headers.
+      console.log("⚠️ CORS origin not in allowlist:", origin);
       return callback(null, false);
     },
 
@@ -105,7 +106,7 @@ app.use(
 );
 
 app.use(express.json());
-app.use(cookieParser()); // ✅ FIX ADDED
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/ai", aiRoutes);
 app.use("/api/tickets", ticketRoutes);
