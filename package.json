@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+      "build": "npm install --omit=dev",
     "seed:admins": "node scripts/seed-admins.js"
   },
   "keywords": [
