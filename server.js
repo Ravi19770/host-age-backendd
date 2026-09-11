@@ -281,25 +281,30 @@ app.post("/api/verify-email-otp", (req, res) => {
     });
   }
 });
+/* ================= REGISTER ================= */
 
-/* ================= REGISTER ================= */
-/* ================= REGISTER ================= */
 app.post("/api/auth/register", async (req, res) => {
   try {
     console.log("========================================");
     console.log("REGISTER REQUEST RECEIVED");
-    console.log("BODY:", {
-      fullName: req.body?.fullName,
-      email: req.body?.email,
-      phone: req.body?.phone,
-      passwordProvided: !!req.body?.password,
+
+    const {
+      fullName,
+      name,
+      email,
+      phone,
+      password,
+    } = req.body || {};
+
+    console.log("REGISTER BODY:", {
+      fullName,
+      email,
+      phone,
+      passwordProvided: Boolean(password),
     });
 
-    const { fullName, name, email, phone, password } = req.body || {};
+    /* ================= VALIDATION ================= */
 
-    // =========================
-    // NAME
-    // =========================
     const customerName =
       typeof fullName === "string"
         ? fullName.trim()
@@ -307,17 +312,11 @@ app.post("/api/auth/register", async (req, res) => {
         ? name.trim()
         : "";
 
-    // =========================
-    // EMAIL
-    // =========================
     const normalizedEmail =
       typeof email === "string"
         ? email.trim().toLowerCase()
         : "";
 
-    // =========================
-    // VALIDATION
-    // =========================
     if (!customerName) {
       return res.status(400).json({
         success: false,
@@ -325,7 +324,14 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    if (!normalizedEmail || !validateEmail(normalizedEmail)) {
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    if (!validateEmail(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: "Valid email is required",
@@ -346,11 +352,10 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // =========================
-    // JWT CHECK
-    // =========================
+    /* ================= CONFIG CHECK ================= */
+
     if (!process.env.JWT_SECRET) {
-      console.error("REGISTER ERROR: JWT_SECRET is missing");
+      console.error("❌ REGISTER: JWT_SECRET missing");
 
       return res.status(500).json({
         success: false,
@@ -358,11 +363,8 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // =========================
-    // USER MODEL CHECK
-    // =========================
     if (!User) {
-      console.error("REGISTER ERROR: User model is not available");
+      console.error("❌ REGISTER: User model missing");
 
       return res.status(500).json({
         success: false,
@@ -370,65 +372,164 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // =========================
-    // CHECK EXISTING USER
-    // =========================
-    const existingUser = await User.findOne({
-      where: {
-        email: normalizedEmail,
-      },
-    });
+    /* ================= DATABASE CHECK ================= */
+
+    try {
+      await sequelize.authenticate();
+      console.log("✅ REGISTER: PostgreSQL connection verified");
+    } catch (dbError) {
+      console.error("❌ REGISTER: PostgreSQL connection failed");
+      console.error("DB NAME:", dbError?.name);
+      console.error("DB MESSAGE:", dbError?.message);
+
+      return res.status(503).json({
+        success: false,
+        message: "Database connection unavailable",
+      });
+    }
+
+    /* ================= EXISTING USER ================= */
+
+    let existingUser;
+
+    try {
+      existingUser = await User.findOne({
+        where: {
+          email: normalizedEmail,
+        },
+      });
+
+      console.log("✅ REGISTER: existing-user query completed");
+    } catch (dbError) {
+      console.error("❌ REGISTER: User.findOne failed");
+      console.error("DB NAME:", dbError?.name);
+      console.error("DB MESSAGE:", dbError?.message);
+      console.error("DB STACK:", dbError?.stack);
+
+      return res.status(503).json({
+        success: false,
+        message: "Unable to access user database",
+      });
+    }
 
     if (existingUser) {
+      console.log(
+        "⚠️ REGISTER: Email already exists:",
+        normalizedEmail
+      );
+
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists",
       });
     }
 
-    // =========================
-    // HASH PASSWORD
-    // =========================
-    const hashedPassword = await bcrypt.hash(password, 12);
+    /* ================= HASH PASSWORD ================= */
 
-    // =========================
-    // CREATE USER
-    // IMPORTANT: fullName, NOT name
-    // =========================
-    const user = await User.create({
-      fullName: customerName,
-      email: normalizedEmail,
-      phone: phone ? String(phone).trim() : null,
-      password: hashedPassword,
-    });
+    let hashedPassword;
 
-    console.log("REGISTER USER CREATED:", user.id);
+    try {
+      hashedPassword = await bcrypt.hash(password, 12);
+      console.log("✅ REGISTER: password hashed");
+    } catch (hashError) {
+      console.error("❌ REGISTER: password hashing failed");
+      console.error(hashError);
 
-    // =========================
-    // JWT
-    // =========================
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role || "USER",
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
+      return res.status(500).json({
+        success: false,
+        message: "Unable to secure password",
+      });
+    }
+
+    /* ================= CREATE USER ================= */
+
+    let user;
+
+    try {
+      user = await User.create({
+        fullName: customerName,
+        email: normalizedEmail,
+        phone: phone ? String(phone).trim() : null,
+        password: hashedPassword,
+      });
+
+      console.log("✅ REGISTER: USER CREATED");
+      console.log("USER ID:", user.id);
+      console.log("USER EMAIL:", user.email);
+    } catch (createError) {
+      console.error("❌ REGISTER: User.create failed");
+      console.error("NAME:", createError?.name);
+      console.error("MESSAGE:", createError?.message);
+      console.error("STACK:", createError?.stack);
+
+      if (createError?.errors) {
+        console.error(
+          "VALIDATION ERRORS:",
+          createError.errors.map((e) => ({
+            message: e.message,
+            field: e.path,
+            value: e.value,
+          }))
+        );
       }
-    );
 
-    // =========================
-    // SAFE USER RESPONSE
-    // =========================
-    const userData = user.toJSON ? user.toJSON() : { ...user };
+      if (
+        createError?.name ===
+        "SequelizeUniqueConstraintError"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: "An account with this email already exists",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to create account",
+      });
+    }
+
+    /* ================= JWT ================= */
+
+    let token;
+
+    try {
+      token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role || "USER",
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "7d",
+        }
+      );
+
+      console.log("✅ REGISTER: JWT generated");
+    } catch (jwtError) {
+      console.error("❌ REGISTER: JWT generation failed");
+      console.error(jwtError);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to create authentication token",
+      });
+    }
+
+    /* ================= SAFE RESPONSE ================= */
+
+    const userData =
+      typeof user.toJSON === "function"
+        ? user.toJSON()
+        : { ...user };
 
     delete userData.password;
     delete userData.resetToken;
     delete userData.resetTokenExpire;
 
-    console.log("REGISTER SUCCESS:", normalizedEmail);
+    console.log("========================================");
+    console.log("✅ REGISTER SUCCESS:", normalizedEmail);
     console.log("========================================");
 
     return res.status(201).json({
@@ -440,25 +541,16 @@ app.post("/api/auth/register", async (req, res) => {
 
   } catch (error) {
     console.error("========================================");
-    console.error("REGISTER DATABASE/SERVER ERROR");
+    console.error("❌ REGISTER UNEXPECTED ERROR");
     console.error("NAME:", error?.name);
     console.error("MESSAGE:", error?.message);
     console.error("STACK:", error?.stack);
-
-    if (error?.errors) {
-      console.error(
-        "VALIDATION ERRORS:",
-        error.errors.map((e) => ({
-          message: e.message,
-          field: e.path,
-          value: e.value,
-        }))
-      );
-    }
-
     console.error("========================================");
 
-    if (error?.name === "SequelizeUniqueConstraintError") {
+    if (
+      error?.name ===
+      "SequelizeUniqueConstraintError"
+    ) {
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists",
@@ -468,12 +560,10 @@ app.post("/api/auth/register", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Registration failed",
-      ...(process.env.NODE_ENV !== "production" && {
-        error: error?.message,
-      }),
     });
   }
 });
+
 //login
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -902,42 +992,81 @@ app.get("/api/health", async (req, res) => {
 
 
 /* ================= START SERVER ================= */
+
 const PORT = Number(process.env.PORT) || 5200;
 
-console.log("======================================");
-console.log("🔧 STARTING HOST-AGE SERVER");
-console.log("📌 PORT:", PORT);
-console.log("📌 NODE:", process.version);
-console.log("📌 PID:", process.pid);
-console.log("======================================");
-
-const server = app.listen(PORT, "0.0.0.0", () => {
+async function startServer() {
+  try {
     console.log("======================================");
-    console.log(`🚀 SERVER RUNNING ON PORT ${PORT}`);
-    console.log(`🌐 http://localhost:${PORT}`);
+    console.log("🔧 STARTING HOST-AGE SERVER");
+    console.log("📌 PORT:", PORT);
+    console.log("📌 NODE:", process.version);
+    console.log("📌 PID:", process.pid);
     console.log("======================================");
-});
-server.on("listening", () => {
-  const address = server.address();
 
-  console.log("======================================");
-  console.log("✅ SERVER LISTENING");
-  console.log("📡 Address:", address);
-  console.log("======================================");
-});
+    // ================= DATABASE CONNECTION =================
 
-server.on("error", (error) => {
-  console.error("======================================");
-  console.error("❌ SERVER ERROR");
-  console.error("Code:", error.code);
-  console.error("Message:", error.message);
-  console.error(error);
-  console.error("======================================");
-});
+    console.log("🔌 Connecting to PostgreSQL...");
 
-server.on("close", () => {
-  console.error("⚠️ HTTP SERVER CLOSED");
-});
+    await connectDB();
+
+    console.log("✅ PostgreSQL Connected Successfully");
+
+    // ================= DATABASE SYNC =================
+
+    if (process.env.NODE_ENV !== "production") {
+      await sequelize.sync();
+
+      console.log("✅ Database Tables Synced");
+    } else {
+      console.log("ℹ️ Production DB sync skipped");
+    }
+
+    // ================= START HTTP SERVER =================
+
+    const server = app.listen(
+      PORT,
+      "0.0.0.0",
+      () => {
+        console.log("======================================");
+        console.log("🚀 SERVER RUNNING ON PORT:", PORT);
+        console.log("🌐 HOST-AGE API READY");
+        console.log("======================================");
+      }
+    );
+
+    // ================= SERVER ERROR =================
+
+    server.on("error", (error) => {
+      console.error("======================================");
+      console.error("❌ SERVER ERROR");
+      console.error("CODE:", error?.code);
+      console.error("MESSAGE:", error?.message);
+      console.error(error);
+      console.error("======================================");
+    });
+
+    // ================= SERVER CLOSE =================
+
+    server.on("close", () => {
+      console.error("⚠️ HTTP SERVER CLOSED");
+    });
+
+  } catch (error) {
+
+    console.error("======================================");
+    console.error("❌ HOST-AGE SERVER STARTUP FAILED");
+    console.error("NAME:", error?.name);
+    console.error("MESSAGE:", error?.message);
+    console.error("STACK:", error?.stack);
+    console.error("======================================");
+
+    process.exit(1);
+  }
+}
+
+
+// ================= PROCESS ERROR HANDLERS =================
 
 process.on("uncaughtException", (error) => {
   console.error("======================================");
@@ -953,29 +1082,36 @@ process.on("unhandledRejection", (reason) => {
   console.error("======================================");
 });
 
-process.on("beforeExit", (code) => {
-  console.error("⚠️ NODE BEFORE EXIT");
-  console.error("Exit Code:", code);
+
+// ================= GRACEFUL SHUTDOWN =================
+
+process.on("SIGINT", async () => {
+  console.log("⚠️ SIGINT RECEIVED");
+
+  try {
+    await sequelize.close();
+    console.log("✅ PostgreSQL connection closed");
+  } catch (error) {
+    console.error("❌ Error closing PostgreSQL:", error);
+  }
+
+  process.exit(0);
 });
 
-process.on("exit", (code) => {
-  console.error("⚠️ NODE PROCESS EXITED");
-  console.error("Exit Code:", code);
+process.on("SIGTERM", async () => {
+  console.log("⚠️ SIGTERM RECEIVED");
+
+  try {
+    await sequelize.close();
+    console.log("✅ PostgreSQL connection closed");
+  } catch (error) {
+    console.error("❌ Error closing PostgreSQL:", error);
+  }
+
+  process.exit(0);
 });
 
-process.on("SIGINT", () => {
-  console.error("⚠️ SIGINT RECEIVED");
-});
 
-process.on("SIGTERM", () => {
-  console.error("⚠️ SIGTERM RECEIVED");
-});
+// ================= START =================
 
-process.on("SIGHUP", () => {
-  console.error("⚠️ SIGHUP RECEIVED");
-});
-
-// Temporary heartbeat - server alive check
-setInterval(() => {
-  console.log("💓 HOST-AGE SERVER ALIVE:", new Date().toISOString());
-}, 10000);
+startServer();
