@@ -1101,12 +1101,15 @@ process.on("SIGINT", async () => {
 process.on("SIGTERM", async () => {
   console.log("⚠️ SIGTERM RECEIVED");
 
-  try {
-    await sequelize.close();
-    console.log("✅ PostgreSQL connection closed");
-  } catch (error) {
-    console.error("❌ Error closing PostgreSQL:", error);
-  }
+  // ================= DATABASE SYNC =================
+try {
+  await sequelize.sync();
+  console.log("✅ Database Tables Synced");
+} catch (syncError) {
+  console.error("❌ Database Sync Failed");
+  console.error(syncError);
+  throw syncError;
+}
 
   process.exit(0);
 });
