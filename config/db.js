@@ -15,11 +15,11 @@ if (databaseUrl) {
 
     dialectOptions: isProduction
       ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        }
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      }
       : {},
 
     pool: {
@@ -38,34 +38,34 @@ if (databaseUrl) {
 } else {
   console.log("🔌 PostgreSQL: Using DB_* variables");
 
- sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASS,
-  {
-    host: "127.0.0.1",
-    port: Number(process.env.DB_PORT) || 5432,
-    dialect: "postgres",
+  sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASS,
+    {
+      host: process.env.DB_HOST || "127.0.0.1",
+      port: Number(process.env.DB_PORT) || 5432,
+      dialect: "postgres",
 
-    logging: console.log,
+      logging: console.log,
 
-    dialectOptions: {},
+      dialectOptions: {},
 
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 10000,
-      idle: 10000,
-    },
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 10000,
+        idle: 10000,
+      },
 
-    connectTimeout: 10000,
+      connectTimeout: 10000,
 
-    retry: {
-      max: 2,
-    },
-  }
+      retry: {
+        max: 2,
+      },
+    }
 
-);
+  );
 }
 
 const connectDB = async () => {
