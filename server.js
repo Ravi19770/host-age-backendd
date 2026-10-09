@@ -39,6 +39,7 @@ const { moderateContent } = require("./models/domains/contentModeration.service.
 
 const extractText = require("./services/htmlExtractor.js")
 const domainRoutes = require("./routes/domain.routes.js");
+const cvtplRoutes = require("./routes/cvtpl.routes.js");
 const { createLead } = require("./services/bitrix.service.js");
 
 
@@ -112,6 +113,8 @@ console.log("✅ ticket.routes.js loaded");
 console.log("✅ admin.routes.js loaded");
 
 app.use("/api/email-pages", emailRoutes);
+app.use("/api/cvtpl", cvtplRoutes);
+console.log("✅ email.routes.js loaded");
 
 console.log("✅ email.routes.js loaded");
 /* ================= IN-MEMORY DB ================= */

@@ -127,6 +127,19 @@ const Domain = sequelize.define(
         lastActiveAt: null,
       },
     },
+    cvtpl: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {
+        provisioned: false,
+        status: "pending",
+        requestId: null,
+        cvtplDomainId: null,
+        dns: null,
+        lastError: null,
+        provisionedAt: null,
+      },
+    },
   },
   {
     tableName: "domains",
