@@ -109,6 +109,8 @@ app.use(express.urlencoded({
 app.use("/api/ai", aiRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/admin", authMiddleware, role("ADMIN"), adminRoutes);
+app.use("/api/domains", domainRoutes);
+console.log("✅ domain.routes.js loaded");
 console.log("✅ ticket.routes.js loaded");
 console.log("✅ admin.routes.js loaded");
 

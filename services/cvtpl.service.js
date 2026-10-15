@@ -1,35 +1,32 @@
 const axios = require("axios");
+const crypto = require("crypto");
 
-const CVTPL_API_URL =
+const CVTPL_API_URL = (
     process.env.CVTPL_API_URL ||
-    "https://admin.cvtpl.com/api/v1/partner";
+    "https://admin.cvtpl.com/api/v1/partner"
+).replace(/\/+$/, "");
 
-const CVTPL_API_KEY =
-    process.env.CVTPL_API_KEY;
+const CVTPL_API_KEY = process.env.CVTPL_API_KEY;
 
 if (!CVTPL_API_KEY) {
     console.warn(
-        "⚠️ CVTPL_API_KEY is not configured"
+        "CVTPL_API_KEY is not configured"
     );
 }
 
 const cvtplClient = axios.create({
     baseURL: CVTPL_API_URL,
     timeout: 30000,
-
     headers: {
-        Authorization: `Bearer ${CVTPL_API_KEY}`,
+        Authorization: `Bearer ${CVTPL_API_KEY || ""}`,
         Accept: "application/json",
+        "Content-Type": "application/json",
     },
 });
 
 /**
  * Make a CVTPL API request.
- *
- * IMPORTANT:
- * - Never log Authorization header.
- * - Never log mailbox passwords.
- * - POST requests must use a persistent request_id.
+ * Never log API keys or sensitive customer data.
  */
 const request = async ({
     method,
@@ -38,6 +35,12 @@ const request = async ({
     params,
     headers = {},
 }) => {
+    if (!CVTPL_API_KEY) {
+        throw new Error(
+            "CVTPL_API_KEY is not configured"
+        );
+    }
+
     try {
         const response = await cvtplClient.request({
             method,
@@ -51,7 +54,6 @@ const request = async ({
             success: true,
             status: response.status,
             data: response.data,
-            headers: response.headers,
         };
     } catch (error) {
         const status = error.response?.status;
@@ -65,12 +67,23 @@ const request = async ({
                 error.message,
         });
 
-        throw error;
+        const apiError = new Error(
+            error.response?.data?.message ||
+            "CVTPL API request failed"
+        );
+
+        apiError.status = status || 502;
+        apiError.responseData = error.response?.data;
+
+        throw apiError;
     }
 };
 
 /**
  * Create / provision a domain on CVTPL.
+ *
+ * requestId MUST be stable across retries for the same
+ * domain provisioning operation.
  */
 const createCvtplDomain = async ({
     userId,
@@ -84,19 +97,37 @@ const createCvtplDomain = async ({
         throw new Error("CVTPL userId is required");
     }
 
-    if (!domain) {
+    if (
+        typeof domain !== "string" ||
+        !domain.trim()
+    ) {
         throw new Error("CVTPL domain is required");
     }
 
-    if (!requestId) {
+    if (!["addon", "subdomain"].includes(type)) {
+        throw new Error(
+            "CVTPL type must be addon or subdomain"
+        );
+    }
+
+    if (type === "subdomain" && !parentDomain) {
+        throw new Error(
+            "parentDomain is required for subdomain"
+        );
+    }
+
+    if (
+        typeof requestId !== "string" ||
+        !requestId.trim()
+    ) {
         throw new Error("CVTPL requestId is required");
     }
 
     const payload = {
         user_id: String(userId),
-        domain,
+        domain: domain.trim().toLowerCase(),
         type,
-        request_id: requestId,
+        request_id: requestId.trim(),
     };
 
     if (customer) {
@@ -104,19 +135,14 @@ const createCvtplDomain = async ({
             name:
                 customer.name ||
                 "Host-Age Customer",
-
             email:
-                customer.email ||
-                null,
+                customer.email || null,
         };
     }
 
-    if (
-        type === "subdomain" &&
-        parentDomain
-    ) {
+    if (type === "subdomain") {
         payload.parent_domain =
-            parentDomain;
+            parentDomain.trim().toLowerCase();
     }
 
     return request({
@@ -126,26 +152,27 @@ const createCvtplDomain = async ({
     });
 };
 
+/**
+ * Get domains registered through CVTPL.
+ */
 const getCvtplDomains = async (userId) => {
-if (!userId) {
-throw new Error("CVTPL userId is required");
-}
+    if (!userId) {
+        throw new Error("CVTPL userId is required");
+    }
 
-
-return request({
-    method: "GET",
-    url: "/domains",
-    params: {
-        user_id: String(userId),
-    },
-});
-
+    return request({
+        method: "GET",
+        url: "/domains",
+        params: {
+            user_id: String(userId),
+        },
+    });
 };
-
 
 module.exports = {
     cvtplClient,
     request,
     createCvtplDomain,
-      getCvtplDomains,
+    getCvtplDomains,
 };
+

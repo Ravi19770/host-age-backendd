@@ -56,6 +56,7 @@ if (databaseUrl) {
         min: 0,
         acquire: 10000,
         idle: 10000,
+        
       },
 
       connectTimeout: 10000,
