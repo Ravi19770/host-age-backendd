@@ -90,7 +90,8 @@ exports.uploadDomain = async (req, res) => {
     // =========================
     return res.status(201).json({
       success: true,
-      message: "Domain uploaded successfully",
+      message: "Domain upload processed",
+      hostingStatus: result.hostingStatus,
       data: result,
     });
   } catch (error) {

@@ -1,3 +1,4 @@
+
 const crypto = require("crypto");
 const Domain = require("../models/domains/domains.model");
 const User = require("../models/User");
@@ -8,6 +9,7 @@ const detectTechnology = require("../models/domains/technologyDetector");
 const { moderateContent } = require("../models/domains/contentModeration.service");
 const extractText = require("./htmlExtractor");
 const { createLead } = require("./bitrix.service");
+const cvtplService = require("./cvtpl.service");
 
 const normalizeDomain = (domain) => {
   if (!domain) return null;
@@ -29,17 +31,9 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
     throw new Error("Domain or ZIP file is required");
   }
 
-  // =====================================
-  // ZIP FLOW
-  // =====================================
-
   if (!domain && zipFile) {
     throw new Error("Domain is required for website upload");
   }
-
-  // =====================================
-  // NORMALIZE + VALIDATE
-  // =====================================
 
   const cleanDomain = normalizeDomain(domain);
 
@@ -47,31 +41,15 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
     throw new Error("Invalid domain format");
   }
 
-  // =====================================
-  // DUPLICATE CHECK
-  // =====================================
-
   const existing = await Domain.findOne({
-    where: {
-      domain: cleanDomain,
-    },
+    where: { domain: cleanDomain },
   });
 
   if (existing) {
     throw new Error("Domain already exists");
   }
 
-  // =====================================
-  // TOKEN
-  // =====================================
-
-  const verificationToken = crypto
-    .randomBytes(32)
-    .toString("hex");
-
-  // =====================================
-  // CRAWL
-  // =====================================
+  const verificationToken = crypto.randomBytes(32).toString("hex");
 
   let websiteContent = {
     html: "",
@@ -88,39 +66,22 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
     drugs: false,
   };
 
-  if (cleanDomain) {
-    try {
-      websiteContent = await crawlWebsite(cleanDomain);
+  try {
+    websiteContent = await crawlWebsite(cleanDomain);
 
-      if (websiteContent?.html) {
-        websiteText = extractText(
-          websiteContent.html
-        );
-
-        technology =
-          await detectTechnology(cleanDomain);
-
-        Object.assign(
-          moderationFlags,
-          moderateContent(websiteText)
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Domain processing failed:",
-        error.message
-      );
-
-      websiteContent = {
-        html: "",
-        status: "failed",
-      };
+    if (websiteContent?.html) {
+      websiteText = extractText(websiteContent.html);
+      technology = await detectTechnology(cleanDomain);
+      Object.assign(moderationFlags, moderateContent(websiteText));
     }
-  }
+  } catch (error) {
+    console.error("Domain processing failed:", error.message);
 
-  // =====================================
-  // MODERATION
-  // =====================================
+    websiteContent = {
+      html: "",
+      status: "failed",
+    };
+  }
 
   const isUnsafe =
     moderationFlags.adult ||
@@ -132,15 +93,9 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
 
   if (isUnsafe) {
     status = "rejected";
-  } else if (
-    websiteContent.status === "success"
-  ) {
+  } else if (websiteContent.status === "success") {
     status = "verified";
   }
-
-  // =====================================
-  // DATABASE
-  // =====================================
 
   let created;
 
@@ -151,56 +106,123 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
       verificationToken,
       verified: status === "verified",
       status,
-
       technology,
 
       moderation: {
         status: isUnsafe
           ? "blocked"
           : status === "verified"
-          ? "safe"
-          : "review",
-
+            ? "safe"
+            : "review",
         flags: moderationFlags,
-
-        flaggedAt: isUnsafe
-          ? new Date()
-          : null,
+        flaggedAt: isUnsafe ? new Date() : null,
       },
 
       crawler: {
-        lastCrawledAt:
-          websiteContent.html
-            ? new Date()
-            : null,
-
-        crawlStatus:
-          websiteContent.status === "failed"
-            ? "failed"
-            : "success",
-
-        score:
-          status === "verified"
-            ? 100
-            : 0,
-
+        lastCrawledAt: websiteContent.html ? new Date() : null,
+        crawlStatus: websiteContent.status === "failed"
+          ? "failed"
+          : "success",
+        score: status === "verified" ? 100 : 0,
         issues: isUnsafe
-          ? Object.keys(
-              moderationFlags
-            ).filter(
-              (key) =>
-                moderationFlags[key]
+          ? Object.keys(moderationFlags).filter(
+              (key) => moderationFlags[key]
             )
           : [],
       },
     });
   } catch (error) {
-    console.error(
-      "DOMAIN CREATE ERROR:",
-      error.message
-    );
-
+    console.error("DOMAIN CREATE ERROR:", error.message);
     throw error;
+  }
+
+  // =====================================
+  // CVTPL PROVISIONING
+  // =====================================
+
+  let cvtplData = {
+    provisioned: false,
+    status: "pending",
+    requestId: `host-age-domain-${created.id}`,
+    cvtplDomainId: null,
+    dns: null,
+    lastError: null,
+    provisionedAt: null,
+  };
+
+  let hostingStatus = "pending";
+
+  // Do not provision domains rejected by moderation.
+  if (isUnsafe) {
+    cvtplData.status = "blocked";
+    cvtplData.lastError = "Domain rejected by content moderation";
+    hostingStatus = "failed";
+  } else {
+    try {
+      if (!process.env.CVTPL_API_KEY) {
+        throw new Error("CVTPL_API_KEY is not configured");
+      }
+
+      const user = await User.findByPk(userId);
+
+      const providerResponse = await cvtplService.createCvtplDomain({
+        userId,
+        domain: created.domain,
+        customer: {
+          name: user?.fullName || user?.name || "Host-Age Customer",
+          email: user?.email || null,
+        },
+        type: "addon",
+        requestId: `host-age-domain-${created.id}`,
+      });
+
+      const providerData = providerResponse?.data || {};
+
+      const providerStatus = String(
+        providerData.status ||
+        providerData.domain?.status ||
+        providerData.data?.status ||
+        ""
+      ).trim().toLowerCase();
+
+      const isHostingActive = ["active", "deployed"].includes(
+        providerStatus
+      );
+
+      cvtplData = {
+        provisioned: true,
+        status: isHostingActive ? providerStatus : "pending",
+        requestId: `host-age-domain-${created.id}`,
+        cvtplDomainId:
+          providerData.domain_id ||
+          providerData.domain?.id ||
+          providerData.id ||
+          null,
+        dns: providerData.dns || providerData.domain?.dns || null,
+        lastError: null,
+        provisionedAt: new Date(),
+      };
+
+      hostingStatus = isHostingActive ? providerStatus : "pending";
+    } catch (error) {
+      console.error("CVTPL PROVISIONING ERROR:", {
+        domain: created.domain,
+        message: error.message,
+        status: error.status || null,
+      });
+
+      cvtplData = {
+        ...cvtplData,
+        status: "failed",
+        provisioned: false,
+        lastError: error.message,
+      };
+
+      hostingStatus = "failed";
+    }
+
+    // Save provisioning state without deleting the domain record.
+    await created.update({ cvtpl: cvtplData });
   }
 
   // =====================================
@@ -213,20 +235,13 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
     if (user) {
       await createLead({
         domain: created.domain,
-        name:
-          user.fullName ||
-          user.name ||
-          "Host-Age User",
-
+        name: user.fullName || user.name || "Host-Age User",
         email: user.email || null,
         phone: user.phone || null,
       });
     }
   } catch (error) {
-    console.error(
-      "Bitrix sync failed:",
-      error.message
-    );
+    console.error("Bitrix sync failed:", error.message);
   }
 
   // =====================================
@@ -238,9 +253,10 @@ exports.uploadDomain = async (userId, domain, zipFile, metadata = {}) => {
     success: true,
     domain: created.domain,
     status: created.status,
+    hostingStatus,
+    cvtpl: cvtplData,
     technology,
     moderation: moderationFlags,
-    crawlStatus:
-      websiteContent.status,
+    crawlStatus: websiteContent.status,
   };
 };
