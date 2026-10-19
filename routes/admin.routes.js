@@ -19,6 +19,7 @@ const crawlWebsite = require("../services/crawler");
 const detectTechnology = require("../models/domains/technologyDetector");
 const { moderateContent } = require("../models/domains/contentModeration.service");
 const extractText = require("../services/htmlExtractor");
+const { encryptToken } = require("../utils/cvtplTokenCrypto");
 
 const router = express.Router();
 
@@ -611,91 +612,247 @@ router.post("/domains/:id/retry", async (req, res) => {
     }
 
     // 2. CVTPL Provisioning retry if requested or pending
-    let cvtplResult = domain.cvtpl || {};
-    let cvtplError = null;
 
-    if (process.env.CVTPL_API_KEY) {
-      try {
-        const provRes = await cvtplService.createCvtplDomain({
-          userId: domain.userId,
-          domain: domain.domain,
-          customer: {
-            name: domain.user?.fullName || "Host-Age User",
-            email: domain.user?.email || null,
-          },
-          type: "addon",
-          requestId: `retry-${domain.id}-${Date.now()}`,
-        });
+let cvtplResult =
+  domain.cvtpl && typeof domain.cvtpl === "object"
+    ? { ...domain.cvtpl }
+    : {};
 
-        cvtplResult = {
-          provisioned: true,
-          status: "active",
-          requestId: `retry-${domain.id}`,
-          cvtplDomainId: provRes?.data?.domain_id || null,
-          dns: provRes?.data?.dns || null,
-          lastError: null,
-          provisionedAt: new Date(),
-        };
-      } catch (provErr) {
-        cvtplError = provErr.message;
-        cvtplResult = {
-          provisioned: false,
-          status: "failed",
-          lastError: provErr.message,
-          provisionedAt: null,
-        };
-      }
-    } else {
-      cvtplResult = {
-        ...cvtplResult,
-        lastError: "CVTPL_API_KEY is not configured on this server",
-      };
+let cvtplError = null;
+let cvtplSubmission = null;
+
+const activeStatuses = ["queued", "pending", "processing"];
+
+const hasActiveOperation =
+  Boolean(cvtplResult.operationId) &&
+  activeStatuses.includes(
+    String(cvtplResult.status || "").toLowerCase()
+  );
+
+if (isUnsafe) {
+  // Unsafe domains must not be submitted for provisioning.
+  cvtplResult = {
+    ...cvtplResult,
+    provisioned: false,
+    status: "blocked",
+    lastError: "Provisioning blocked because domain content failed moderation.",
+    lastAttemptAt: new Date().toISOString(),
+  };
+
+  cvtplSubmission = {
+    status: "blocked",
+    submitted: false,
+    reason: "moderation_failed",
+  };
+} else if (!process.env.CVTPL_API_KEY) {
+  cvtplError = "CVTPL_API_KEY is not configured on this server";
+
+  cvtplResult = {
+    ...cvtplResult,
+    provisioned: false,
+    status: hasActiveOperation ? cvtplResult.status : "not_configured",
+    lastError: cvtplError,
+    lastAttemptAt: new Date().toISOString(),
+  };
+
+  cvtplSubmission = {
+    status: cvtplResult.status,
+    submitted: false,
+    error: cvtplError,
+  };
+} else if (hasActiveOperation) {
+  // Do not create a duplicate operation while one is still running.
+  cvtplSubmission = {
+    status: cvtplResult.status,
+    submitted: false,
+    alreadyProcessing: true,
+    operationId: cvtplResult.operationId,
+    pollAfterSeconds: cvtplResult.pollAfterSeconds || 10,
+  };
+} else {
+  try {
+    if (typeof cvtplService.submitDomainV2 !== "function") {
+      throw new Error(
+        "cvtplService.submitDomainV2() is not implemented"
+      );
     }
 
-    const newStatus = isUnsafe ? "rejected" : domain.status;
+    if (typeof encryptToken !== "function") {
+      throw new Error("CVTPL operation token encryption is unavailable");
+    }
 
-    await domain.update({
-      technology,
-      moderation: {
-        status: isUnsafe ? "blocked" : "safe",
-        flags: moderationFlags,
-        flaggedAt: isUnsafe ? new Date() : null,
-      },
-      crawler: {
-        lastCrawledAt: new Date(),
-        crawlStatus: crawlResult.status,
-        score: crawlResult.status === "success" && !isUnsafe ? 100 : 0,
-        issues: isUnsafe ? Object.keys(moderationFlags).filter((k) => moderationFlags[k]) : [],
-      },
-      cvtpl: cvtplResult,
-      status: newStatus,
+    const attempt = Number(cvtplResult.attempt || 0) + 1;
+
+    // Unique request ID per new attempt. Reuse the same ID only when
+    // retrying the same logical request according to provider rules.
+    const requestId =
+      `host-age-domain-${domain.id}-attempt-${attempt}`;
+
+    const result = await cvtplService.submitDomainV2({
+      userId: domain.userId,
+      domain: domain.domain,
+      type: "addon",
+      requestId,
     });
 
-    await AuditLog.log({
-      action: "DOMAIN_PROVISIONING_RETRIED",
-      entity: "Domain",
-      entityId: domain.id,
-      userId: req.user.id,
-      payload: {
-        domain: domain.domain,
-        crawlStatus: crawlResult.status,
-        cvtplError,
-      },
-    });
+    if (
+      !result ||
+      !result.operationId ||
+      !result.operationToken ||
+      !result.statusUrl
+    ) {
+      throw new Error(
+        "CVTPL V2 returned an incomplete operation response"
+      );
+    }
 
-    return res.json({
-      success: true,
-      message: "Diagnostics and provisioning retry completed",
-      domain,
-      crawlResult,
-      cvtplWarning: !process.env.CVTPL_API_KEY ? "CVTPL_API_KEY is not configured in environment" : null,
-      cvtplError,
+    // The provider has accepted the operation, but provisioning
+    // is not confirmed yet.
+    cvtplResult = {
+      ...cvtplResult,
+      provisioned: false,
+      status: "queued",
+      attempt,
+      requestId,
+      operationId: result.operationId,
+      statusUrl: result.statusUrl,
+      encryptedOperationToken: encryptToken(result.operationToken),
+      pollAfterSeconds: Number(result.pollAfterSeconds) > 0
+        ? Number(result.pollAfterSeconds)
+        : 10,
+      submittedAt: new Date().toISOString(),
+      lastAttemptAt: new Date().toISOString(),
+      lastCheckedAt: null,
+      lastError: null,
+    };
+
+    cvtplSubmission = {
+      status: "queued",
+      submitted: true,
+      operationId: result.operationId,
+      requestId,
+      pollAfterSeconds: cvtplResult.pollAfterSeconds,
+    };
+  } catch (provErr) {
+    cvtplError =
+      provErr?.message || "Unable to submit CVTPL provisioning request";
+
+    // Preserve any existing operation details so that a transient
+    // submission error does not destroy a previously saved operation.
+    cvtplResult = {
+      ...cvtplResult,
+      provisioned: false,
+      status: hasActiveOperation ? cvtplResult.status : "submission_failed",
+      lastError: cvtplError,
+      lastAttemptAt: new Date().toISOString(),
+    };
+
+    cvtplSubmission = {
+      status: cvtplResult.status,
+      submitted: false,
+      error: cvtplError,
+    };
+
+    console.error("CVTPL V2 RETRY SUBMISSION ERROR:", {
+      domainId: domain.id,
+      message: cvtplError,
+      status: provErr?.status || null,
     });
-  } catch (error) {
-    console.error("ADMIN RETRY DOMAIN ERROR:", error);
-    return res.status(500).json({ success: false, message: error.message || "Failed to retry domain" });
   }
+}
+
+const newStatus = isUnsafe ? "rejected" : domain.status;
+
+await domain.update({
+  technology,
+  moderation: {
+    status: isUnsafe ? "blocked" : "safe",
+    flags: moderationFlags,
+    flaggedAt: isUnsafe ? new Date() : null,
+  },
+  crawler: {
+    lastCrawledAt: new Date(),
+    crawlStatus: crawlResult.status,
+    score:
+      crawlResult.status === "success" && !isUnsafe ? 100 : 0,
+    issues: isUnsafe
+      ? Object.keys(moderationFlags).filter(
+          (key) => moderationFlags[key]
+        )
+      : [],
+  },
+  cvtpl: cvtplResult,
+  status: newStatus,
 });
+
+await AuditLog.log({
+  action: "DOMAIN_PROVISIONING_RETRIED",
+  entity: "Domain",
+  entityId: domain.id,
+  userId: req.user.id,
+  payload: {
+    domain: domain.domain,
+    crawlStatus: crawlResult.status,
+    moderationStatus: isUnsafe ? "blocked" : "safe",
+    cvtplStatus: cvtplResult.status,
+    cvtplOperationId: cvtplResult.operationId || null,
+    cvtplError,
+  },
+});
+
+const responseStatus = cvtplError
+  ? 502
+  : cvtplSubmission?.status === "queued" ||
+      cvtplSubmission?.status === "pending" ||
+      cvtplSubmission?.status === "processing"
+    ? 202
+    : 200;
+
+return res.status(responseStatus).json({
+  success: !cvtplError,
+  diagnostics: {
+    completed: true,
+    crawlStatus: crawlResult.status,
+    moderationStatus: isUnsafe ? "blocked" : "safe",
+  },
+  provisioning: {
+    status: cvtplResult.status || "unknown",
+    provisioned: cvtplResult.provisioned === true,
+    submission: cvtplSubmission,
+    error: cvtplError,
+  },
+  message: cvtplError
+    ? "Diagnostics completed, but CVTPL provisioning submission failed."
+    : isUnsafe
+      ? "Diagnostics completed. Provisioning was blocked by moderation."
+      : hasActiveOperation
+        ? "Diagnostics completed. Existing CVTPL provisioning operation is still processing."
+        : cvtplSubmission?.submitted
+          ? "Diagnostics completed. CVTPL accepted the request; awaiting provider confirmation."
+          : "Diagnostics completed. Check the provisioning status for the latest result.",
+  domain,
+  crawlResult,
+  cvtplWarning: !process.env.CVTPL_API_KEY
+    ? "CVTPL_API_KEY is not configured in the environment."
+    : null,
+    cvtplError,
+  cvtplWarning: !process.env.CVTPL_API_KEY
+    ? "CVTPL_API_KEY is not configured in the environment."
+    : null,
+});
+} catch (error) {
+  console.error("ADMIN RETRY DOMAIN ERROR:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: error.message || "Failed to retry domain",
+  });
+}
+});
+
+/* ==========================================================================
+   5. HOSTING PLAN MANAGEMENT
+   ========================================================================== */
 
 /* ==========================================================================
    5. HOSTING PLAN MANAGEMENT
@@ -1372,87 +1529,168 @@ router.get("/cvtpl/status", async (req, res) => {
 router.post("/cvtpl/provision/:domainId", async (req, res) => {
   try {
     if (!process.env.CVTPL_API_KEY) {
-      return res.status(400).json({
+      return res.status(503).json({
         success: false,
-        message: "CVTPL_API_KEY is not configured in server environment variables",
+        message: "CVTPL integration is not configured",
       });
     }
 
-    const domain = await Domain.findByPk(req.params.domainId, {
-      include: [{ model: User, as: "user", attributes: ["id", "fullName", "email"] }],
-    });
+    const domain = await Domain.findByPk(req.params.domainId);
 
     if (!domain) {
-      return res.status(404).json({ success: false, message: "Domain not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Domain not found",
+      });
     }
 
-    const requestId = `admin-prov-${domain.id}-${Date.now()}`;
-    const result = await cvtplService.createCvtplDomain({
+    const existing = domain.cvtpl || {};
+
+    // Never create a second operation while the first is pending.
+    if (
+      existing.operationId &&
+      ["queued", "pending", "processing"].includes(existing.status)
+    ) {
+      return res.status(202).json({
+        success: true,
+        status: existing.status,
+        message: "Domain provisioning is already processing",
+      });
+    }
+
+    // Stable identifier: do not generate a new ID on every retry.
+    const requestId = `host-age-domain-${domain.id}`;
+
+    const result = await cvtplService.submitDomainV2({
       userId: domain.userId,
       domain: domain.domain,
-      customer: {
-        name: domain.user?.fullName || "Host-Age User",
-        email: domain.user?.email || null,
-      },
       type: "addon",
       requestId,
     });
 
     const cvtplData = {
-      provisioned: true,
-      status: "active",
+      ...existing,
+      provisioned: false,
+      status: "queued",
       requestId,
-      cvtplDomainId: result?.data?.domain_id || null,
-      dns: result?.data?.dns || null,
+      operationId: result.operationId,
+      statusUrl: result.statusUrl,
+      encryptedOperationToken: encryptToken(result.operationToken),
+      pollAfterSeconds: result.pollAfterSeconds,
       lastError: null,
-      provisionedAt: new Date(),
+      submittedAt: new Date().toISOString(),
     };
 
-    await domain.update({
-      cvtpl: cvtplData,
-      status: "verified",
-      verified: true,
-    });
+    // This assumes Domain.cvtpl is a persisted JSON/JSONB field.
+    await domain.update({ cvtpl: cvtplData });
 
-    await AuditLog.log({
-      action: "CVTPL_DOMAIN_PROVISIONED",
-      entity: "Domain",
-      entityId: domain.id,
-      userId: req.user.id,
-      payload: { domain: domain.domain, result: result?.data },
-    });
-
-    return res.json({
+    // Do NOT set status="verified" or verified=true here.
+    return res.status(202).json({
       success: true,
-      message: `Domain ${domain.domain} successfully provisioned on CVTPL`,
-      cvtpl: cvtplData,
+      status: "queued",
+      message: "Domain provisioning request accepted; awaiting provider confirmation",
+      domainId: domain.id,
+      operationId: result.operationId,
+      pollAfterSeconds: result.pollAfterSeconds,
     });
   } catch (error) {
-    console.error("ADMIN CVTPL PROVISION ERROR:", error);
+    console.error("CVTPL V2 SUBMIT ERROR:", {
+      status: error.status,
+      message: error.message,
+    });
 
-    // Save error in domain record so it is visible to admins
-    try {
-      const domain = await Domain.findByPk(req.params.domainId);
-      if (domain) {
-        const existingCvtpl = domain.cvtpl || {};
-        await domain.update({
-          cvtpl: {
-            ...existingCvtpl,
-            provisioned: false,
-            status: "failed",
-            lastError: error.message,
-          },
-        });
-      }
-    } catch (_) {}
-
-    return res.status(error.status || 500).json({
+    return res.status(error.status || 502).json({
       success: false,
-      message: error.message || "Failed to provision domain on CVTPL",
-      details: error.responseData || null,
+      message: error.message || "Unable to submit domain provisioning request",
     });
   }
 });
+
+
+/**
+ * GET /api/admin/cvtpl/operation/:domainId
+ * Fetch the real operation status from CVTPL V2.
+ *
+ * IMPORTANT:
+ * Unknown provider statuses never count as success.
+ */
+router.get("/cvtpl/operation/:domainId", async (req, res) => {
+  try {
+    const domain = await Domain.findByPk(req.params.domainId);
+
+    if (!domain) {
+      return res.status(404).json({
+        success: false,
+        message: "Domain not found",
+      });
+    }
+
+    const current = domain.cvtpl || {};
+
+    if (!current.operationId || !current.statusUrl) {
+      return res.status(409).json({
+        success: false,
+        message: "No CVTPL operation is recorded for this domain",
+      });
+    }
+
+    if (!current.encryptedOperationToken) {
+      return res.status(409).json({
+        success: false,
+        message: "Operation token is unavailable; status cannot be checked",
+      });
+    }
+
+    const { decryptToken } = require("../utils/cvtplTokenCrypto");
+
+    const operationToken = decryptToken(
+      current.encryptedOperationToken
+    );
+
+    const result = await cvtplService.getDomainOperationV2({
+      statusUrl: current.statusUrl,
+      operationToken,
+    });
+
+    /*
+     * Do not guess the provider's terminal status names.
+     * Until its documented response contract is mapped,
+     * store the response as pending and do not mark provisioned.
+     */
+    const updated = {
+      ...current,
+      provisioned: false,
+      status: "processing",
+      lastCheckedAt: new Date().toISOString(),
+      lastError: null,
+      providerStatusSnapshot: result,
+    };
+
+    await domain.update({ cvtpl: updated });
+
+    return res.status(200).json({
+      success: true,
+      status: updated.status,
+      provisioned: false,
+      message:
+        "Provider status fetched. Final status mapping is required before confirming provisioning.",
+      domainId: domain.id,
+      operationId: current.operationId,
+      lastCheckedAt: updated.lastCheckedAt,
+    });
+  } catch (error) {
+    console.error("CVTPL OPERATION STATUS ERROR:", {
+      status: error.status,
+      message: error.message,
+    });
+
+    return res.status(error.status || 502).json({
+      success: false,
+      message: "Unable to fetch CVTPL operation status",
+    });
+  }
+});
+
 
 /* ==========================================================================
    10. AUDIT LOGS
@@ -1494,5 +1732,6 @@ router.get("/audit-logs", async (req, res) => {
     return res.status(500).json({ success: false, message: "Unable to fetch audit logs" });
   }
 });
+
 
 module.exports = router;

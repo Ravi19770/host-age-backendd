@@ -1090,33 +1090,29 @@ process.on("unhandledRejection", (reason) => {
 
 // ================= GRACEFUL SHUTDOWN =================
 
-process.on("SIGINT", async () => {
-  console.log("⚠️ SIGINT RECEIVED");
+
+async function gracefulShutdown(signal) {
+  console.log(`⚠️ ${signal} RECEIVED`);
 
   try {
     await sequelize.close();
     console.log("✅ PostgreSQL connection closed");
   } catch (error) {
     console.error("❌ Error closing PostgreSQL:", error);
+    process.exitCode = 1;
   }
 
-  process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-  console.log("⚠️ SIGTERM RECEIVED");
-
-  // ================= DATABASE SYNC =================
-try {
-  await sequelize.sync();
-  console.log("✅ Database Tables Synced");
-} catch (syncError) {
-  console.error("❌ Database Sync Failed");
-  console.error(syncError);
-  throw syncError;
+  if (process.exitCode !== 1) {
+    process.exitCode = 0;
+  }
 }
 
-  process.exit(0);
+process.on("SIGINT", () => {
+  void gracefulShutdown("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+  void gracefulShutdown("SIGTERM");
 });
 
 

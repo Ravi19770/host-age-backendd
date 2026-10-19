@@ -1,5 +1,5 @@
 const client = require("../config/openai");
-const systemPrompt = require("../utils.js/systempromtp");
+const systemPrompt = require("../utils/systempromtp");
 
 
 console.log("OpenAI Key Loaded:", !!process.env.OPENAI_API_KEY);
