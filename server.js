@@ -994,7 +994,10 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
-
+const {
+  startDnsVerificationJob,
+  stopDnsVerificationJob,
+} = require("./jobs/dnsVerification.job");
 
 /* ================= START SERVER ================= */
 
@@ -1016,6 +1019,8 @@ async function startServer() {
     await connectDB();
 
     console.log("✅ PostgreSQL Connected Successfully");
+
+    startDnsVerificationJob();
 
     // ================= DATABASE SYNC =================
 

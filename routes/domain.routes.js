@@ -9,6 +9,7 @@ const upload = multer({
 });
 
 const { uploadDomain } = require("../controllers/domain.controller");
+const { verifyDns } = require("../controllers/dns.controller");
 
 router.post(
   "/upload",
@@ -17,6 +18,6 @@ router.post(
   uploadDomain
 );
 
-
+router.post("/:id/verify-dns", authMiddleware, verifyDns);
 
 module.exports = router;

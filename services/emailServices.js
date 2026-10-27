@@ -15,6 +15,7 @@ if (!process.env.RESEND_API_KEY) {
 // ==========================
 // OTP EMAIL
 // ==========================
+
 const sendOTPEmail = async (email, otp) => {
   try {
     if (!email || !otp) {
@@ -31,49 +32,310 @@ const sendOTPEmail = async (email, otp) => {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: normalizedEmail,
-      subject: "Host-Age Email Verification OTP",
+      subject: "Verify your email address | Host-Age",
+
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-          <h2>Host-Age Email Verification</h2>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light">
+        <title>Verify your email - Host-Age</title>
+      </head>
 
-          <div style="
-            font-size: 32px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            margin: 25px 0;
-          ">
-            ${cleanOtp}
-          </div>
+      <body style="
+        margin:0;
+        padding:0;
+        background-color:#f1f5f9;
+        font-family:Arial,Helvetica,sans-serif;
+        color:#0f172a;
+      ">
 
-          <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+        <table role="presentation" width="100%"
+          cellpadding="0" cellspacing="0"
+          style="background:#f1f5f9;padding:32px 12px;">
+          <tr>
+            <td align="center">
 
-          <p>
-            If you did not request this OTP, you can safely ignore this email.
-          </p>
+              <table role="presentation" width="100%"
+                cellpadding="0" cellspacing="0"
+                style="
+                  max-width:560px;
+                  background:#ffffff;
+                  border:1px solid #e2e8f0;
+                  border-radius:14px;
+                  overflow:hidden;
+                ">
 
-          <hr />
+                <!-- BRAND HEADER -->
+                <tr>
+                  <td align="center" style="padding:30px 24px 24px;">
+                    <div style="
+                      display:inline-block;
+                      background:#2563eb;
+                      color:#ffffff;
+                      padding:10px 14px;
+                      border-radius:10px;
+                      font-size:20px;
+                      font-weight:bold;
+                      letter-spacing:-0.5px;
+                    ">
+                      Host-Age
+                    </div>
 
-          <p style="font-size: 12px; color: #666;">
-            This is an automated email from Host-Age. Please do not reply.
-          </p>
-        </div>
+                    <p style="
+                      margin:12px 0 0;
+                      color:#64748b;
+                      font-size:11px;
+                      letter-spacing:1.5px;
+                    ">
+                      HOSTING · DOMAINS · BUSINESS EMAIL
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 32px;">
+                    <div style="height:1px;background:#e2e8f0;"></div>
+                  </td>
+                </tr>
+
+                <!-- MAIN CONTENT -->
+                <tr>
+                  <td style="padding:32px 32px 20px;">
+
+                    <div style="
+                      width:52px;
+                      height:52px;
+                      line-height:52px;
+                      text-align:center;
+                      background:#eff6ff;
+                      border-radius:14px;
+                      color:#2563eb;
+                      font-size:25px;
+                      font-weight:bold;
+                    ">
+                      ✓
+                    </div>
+
+                    <h1 style="
+                      margin:24px 0 14px;
+                      font-size:27px;
+                      line-height:1.3;
+                      letter-spacing:-0.6px;
+                      color:#0f172a;
+                    ">
+                      Verify your email address
+                    </h1>
+
+                    <p style="
+                      margin:0 0 16px;
+                      font-size:15px;
+                      line-height:1.8;
+                      color:#475569;
+                    ">
+                      Hello there,
+                    </p>
+
+                    <p style="
+                      margin:0 0 24px;
+                      font-size:15px;
+                      line-height:1.8;
+                      color:#475569;
+                    ">
+                      Welcome to Host-Age! Use the verification
+                      code below to confirm your email address
+                      and continue setting up your account.
+                    </p>
+
+                    <!-- OTP CARD -->
+                    <table role="presentation" width="100%"
+                      cellpadding="0" cellspacing="0"
+                      style="
+                        background:#f8fafc;
+                        border:1px solid #dbeafe;
+                        border-radius:12px;
+                      ">
+                      <tr>
+                        <td align="center" style="padding:24px 16px;">
+
+                          <p style="
+                            margin:0 0 14px;
+                            color:#64748b;
+                            font-size:11px;
+                            font-weight:bold;
+                            letter-spacing:1.5px;
+                          ">
+                            YOUR VERIFICATION CODE
+                          </p>
+
+                          <p style="
+                            margin:0;
+                            color:#2563eb;
+                            font-size:34px;
+                            line-height:1.4;
+                            font-weight:bold;
+                            letter-spacing:8px;
+                            font-family:Arial,Helvetica,sans-serif;
+                          ">
+                            ${cleanOtp}
+                          </p>
+
+                          <p style="
+                            margin:14px 0 0;
+                            color:#64748b;
+                            font-size:13px;
+                          ">
+                            This code expires in 10 minutes.
+                          </p>
+
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- SECURITY NOTICE -->
+                    <table role="presentation" width="100%"
+                      cellpadding="0" cellspacing="0"
+                      style="margin-top:24px;">
+                      <tr>
+                        <td width="30" valign="top"
+                          style="color:#2563eb;font-size:18px;">
+                          &#128274;
+                        </td>
+                        <td style="
+                          color:#475569;
+                          font-size:13px;
+                          line-height:1.8;
+                        ">
+                          <strong style="color:#0f172a;">
+                            Keep your code secure.
+                          </strong>
+                          Never share this code with anyone.
+                          Host-Age will never ask you to disclose
+                          your verification code over the phone.
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="
+                      margin:26px 0 0;
+                      color:#64748b;
+                      font-size:13px;
+                      line-height:1.8;
+                    ">
+                      Didn't request this verification?
+                      You can safely ignore this email.
+                      Your account will not be verified using
+                      this email alone.
+                    </p>
+
+                  </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                  <td style="
+                    padding:24px 20px;
+                    background:#f8fafc;
+                    border-top:1px solid #e2e8f0;
+                    text-align:center;
+                  ">
+                    <p style="
+                      margin:0 0 8px;
+                      color:#334155;
+                      font-size:13px;
+                      font-weight:bold;
+                    ">
+                      Host-Age
+                    </p>
+
+                    <p style="
+                      margin:0 0 12px;
+                      color:#64748b;
+                      font-size:12px;
+                      line-height:1.7;
+                    ">
+                      Secure hosting. Professional email.
+                    </p>
+
+                    <a href="https://host-age.in"
+                      style="
+                        color:#2563eb;
+                        font-size:12px;
+                        text-decoration:none;
+                      ">
+                      www.host-age.in
+                    </a>
+
+                    <p style="
+                      margin:16px 0 0;
+                      color:#94a3b8;
+                      font-size:11px;
+                    ">
+                      © 2026 Host-Age. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+              <p style="
+                margin:18px 0 0;
+                color:#94a3b8;
+                font-size:11px;
+                text-align:center;
+                line-height:1.7;
+              ">
+                This is an automated message.
+                Please do not reply to this email.
+              </p>
+
+            </td>
+          </tr>
+        </table>
+
+      </body>
+      </html>
+      `,
+
+      text: `
+Host-Age - Verify your email address
+
+Hello there,
+
+Welcome to Host-Age!
+
+Your email verification code is: ${cleanOtp}
+
+This code expires in 10 minutes.
+
+Never share this code with anyone.
+
+If you did not request this verification,
+you can safely ignore this email.
+
+Host-Age
+https://host-age.in
       `,
     });
 
     if (error) {
-      console.error("❌ OTP Email Error:", error);
+      console.error("Resend OTP Email Error:", error);
       throw new Error(error.message || "Failed to send OTP email");
     }
 
-    console.log("✅ OTP Email Sent Successfully");
-    console.log("📧 Email ID:", data?.id);
+    console.log("OTP email sent successfully.");
+    console.log("Resend Email ID:", data?.id);
 
     return data;
   } catch (err) {
-    console.error("❌ Resend OTP Error:", err.message);
+    console.error("Resend OTP Error:", err.message);
     throw err;
   }
 };
+
 // RESET PASSWORD EMAIL
 // ==========================
 const sendResetPasswordEmail = async (email, resetLink) => {
