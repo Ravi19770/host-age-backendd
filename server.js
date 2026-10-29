@@ -51,6 +51,7 @@ const {  sendOTPEmail,  sendResetPasswordEmail,} = require("./services/emailServ
 
 const app = express();
 
+
 /* ================= MIDDLEWARE ================= */
 
 const allowedOrigins = [
