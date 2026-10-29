@@ -48,14 +48,20 @@ const sendOTPEmail = async (email, otp) => {
           <tr><td align="center" style="padding:28px 12px 30px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 
-              <!-- HOST-AGE BRAND -->
-              <tr><td align="center" style="padding:10px 10px 54px;">
-                <a href="https://host-age.in" style="text-decoration:none;color:#142f5b;">
-                  <div style="font-size:43px;line-height:1.15;font-weight:800;letter-spacing:-2px;color:#142f5b;">HOST-<span style="color:#245da6;">AGE</span></div>
-                  <div style="margin:5px auto 0;border-top:1px solid #91acd0;max-width:285px;padding-top:5px;font-size:14px;color:#17396d;">Hosting Solutions Simplified</div>
-                </a>
-              </td></tr>
 
+   <!-- HOST-AGE BRAND -->
+<tr>
+  <td align="center" style="padding:10px 10px 54px;">
+    <a href="https://host-age.in" style="text-decoration:none;display:inline-block;">
+      <img
+        src="https://host-age.in/assets/images/Host-Age%20logo.png"
+        alt="Host-Age Logo"
+        width="220"
+        style="display:block;width:220px;max-width:100%;height:auto;border:0;margin:0 auto;"
+      />
+    </a>
+  </td>
+</tr>
               <!-- MAIN BLUE PANEL -->
               <tr><td style="padding:28px 22px 25px;background:#eaf5ff;background-image:linear-gradient(180deg,#d9edff 0%,#edf7ff 72%,#ffffff 100%);border-radius:22px 22px 0 0;">
                 <p style="margin:22px 0 18px;font-size:16px;letter-spacing:3px;color:#0068c9;">VERIFICATION CODE</p>
@@ -100,21 +106,90 @@ const sendOTPEmail = async (email, otp) => {
                 </table>
               </td></tr>
 
-              <!-- SECURITY CARD -->
-              <tr><td style="padding:15px 0;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#edf5ff;border-radius:16px;">
-                  <tr><td width="105" align="center" valign="middle" style="padding:22px 10px;"><div style="width:76px;height:76px;line-height:76px;text-align:center;background:#ffffff;border-radius:50%;font-size:34px;">&#128274;</div></td>
-                  <td valign="middle" style="padding:22px 15px 22px 5px;"><h3 style="margin:0 0 10px;font-size:16px;color:#07396f;">Keep Your Account Secure</h3><p style="margin:0;color:#111111;font-size:13px;line-height:1.5;">Do not share this code with anyone. Our team will never ask for your verification code.</p></td></tr>
-                </table>
-              </td></tr>
+              
+<!-- SECURITY CARD -->
+<tr>
+  <td style="padding:15px 0;">
+    <table role="presentation" width="100%" cellpadding="0"
+           cellspacing="0" border="0"
+           style="background:#edf5ff;border-radius:16px;">
+      <tr>
+        <td width="105" align="center" valign="middle"
+            style="padding:22px 10px;">
+          <div style="width:76px;height:76px;line-height:76px;
+                      text-align:center;background:#ffffff;
+                      border-radius:50%;">
+            <img
+              src="YOUR_PUBLIC_URL/Untitled%20design%20(8).svg"
+              alt="Secure Lock"
+              width="42"
+              height="42"
+              style="display:inline-block;width:42px;height:42px;
+                     border:0;vertical-align:middle;"
+            />
+          </div>
+        </td>
 
-              <!-- SUPPORT CARD -->
-              <tr><td style="padding:15px 0 30px;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#edf5ff;border-radius:16px;">
-                  <tr><td width="105" align="center" valign="top" style="padding:25px 10px;"><div style="width:76px;height:76px;line-height:76px;text-align:center;background:#ffffff;border-radius:50%;font-size:34px;">&#128172;</div></td>
-                  <td valign="top" style="padding:27px 15px 25px 5px;"><h3 style="margin:0 0 12px;font-size:16px;color:#07396f;">Need Help?</h3><p style="margin:0 0 16px;color:#111111;font-size:13px;line-height:1.5;">If you didn't request this code or are having trouble verifying your email, our support team is here to help.</p><a href="https://host-age.in" style="display:inline-block;background:#0751a0;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:11px 25px;border-radius:24px;">Chat Support &rarr;</a></td></tr>
-                </table>
-              </td></tr>
+        <td valign="middle" style="padding:22px 15px 22px 5px;">
+          <h3 style="margin:0 0 10px;font-size:16px;color:#07396f;">
+            Keep Your Account Secure
+          </h3>
+          <p style="margin:0;color:#111111;font-size:13px;line-height:1.5;">
+            Do not share this code with anyone. Our team will never ask
+            for your verification code.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- SUPPORT CARD -->
+<tr>
+  <td style="padding:15px 0 30px;">
+    <table role="presentation" width="100%" cellpadding="0"
+           cellspacing="0" border="0"
+           style="background:#edf5ff;border-radius:16px;">
+      <tr>
+        <td width="105" align="center" valign="top"
+            style="padding:25px 10px;">
+          <div style="width:76px;height:76px;line-height:76px;
+                      text-align:center;background:#ffffff;
+                      border-radius:50%;">
+            <img
+              src="YOUR_PUBLIC_URL/Untitled%20design%20(9).svg"
+              alt="Chat Support"
+              width="42"
+              height="42"
+              style="display:inline-block;width:42px;height:42px;
+                     border:0;vertical-align:middle;"
+            />
+          </div>
+        </td>
+
+        <td valign="top" style="padding:27px 15px 25px 5px;">
+          <h3 style="margin:0 0 12px;font-size:16px;color:#07396f;">
+            Need Help?
+          </h3>
+
+          <p style="margin:0 0 16px;color:#111111;font-size:13px;line-height:1.5;">
+            If you didn't request this code or are having trouble
+            verifying your email, our support team is here to help.
+          </p>
+
+          <a href="https://host-age.in"
+             target="_blank"
+             style="display:inline-block;background:#0751a0;
+                    color:#ffffff;text-decoration:none;font-weight:bold;
+                    font-size:14px;padding:11px 25px;border-radius:24px;">
+            Chat Support &rarr;
+          </a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
 
               <!-- SERVICE BENEFITS -->
               <tr><td style="padding:15px 0 28px;border-top:1px solid #cccccc;">
@@ -127,19 +202,63 @@ const sendOTPEmail = async (email, otp) => {
               </td></tr>
 
               <!-- FOOTER -->
-              <tr>
-  <td align="center" style="background:#142f5b;border-radius:22px;padding:28px 20px;color:#ffffff;">
-    <p style="margin:0 0 22px;font-size:13px;line-height:1.8;">
-      <a href="https://www.linkedin.com/" style="color:#ffffff;text-decoration:none;">LinkedIn</a>&nbsp;&nbsp; | &nbsp;&nbsp;
-      <a href="https://www.instagram.com/" style="color:#ffffff;text-decoration:none;">Instagram</a>&nbsp;&nbsp; | &nbsp;&nbsp;
+              
 
-      <a href="https://www.youtube.com/" style="color:#ffffff;text-decoration:none;">YouTube</a>
+<tr>
+  <td align="center"
+      style="background:#142f5b;border-radius:22px;padding:28px 20px;color:#ffffff;">
+
+    <p style="margin:0 0 20px;font-size:13px;line-height:1.8;color:#ffffff;">
+      Follow us on social media
     </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0"
+           border="0" align="center">
+      <tr>
+        <!-- Instagram: Untitled design (16).svg -->
+        <td align="center" style="padding:0 12px;">
+          <a href="YOUR_INSTAGRAM_PROFILE_URL" target="_blank">
+            <img
+              src="YOUR_PUBLIC_URL/Untitled%20design%20(16).svg"
+              alt="Instagram"
+              width="32"
+              height="32"
+              style="display:block;width:32px;height:32px;border:0;"
+            />
+          </a>
+        </td>
+
+        <!-- Facebook: Untitled design (17).svg -->
+        <td align="center" style="padding:0 12px;">
+          <a href="YOUR_FACEBOOK_PAGE_URL" target="_blank">
+            <img
+              src="YOUR_PUBLIC_URL/Untitled%20design%20(17).svg"
+              alt="Facebook"
+              width="32"
+              height="32"
+              style="display:block;width:32px;height:32px;border:0;"
+            />
+          </a>
+        </td>
+
+        <!-- YouTube: Untitled design (18).svg -->
+        <td align="center" style="padding:0 12px;">
+          <a href="YOUR_YOUTUBE_CHANNEL_URL" target="_blank">
+            <img
+              src="YOUR_PUBLIC_URL/Untitled%20design%20(18).svg"
+              alt="YouTube"
+              width="32"
+              height="32"
+              style="display:block;width:32px;height:32px;border:0;"
+            />
+          </a>
+        </td>
+      </tr>
+    </table>
   </td>
 </tr>
-            </table>
-          </td></tr>
-        </table>
+
+
       </body>
       </html>
       `,
