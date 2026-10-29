@@ -39,263 +39,107 @@ const sendOTPEmail = async (email, otp) => {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="color-scheme" content="light">
-        <title>Verify your email - Host-Age</title>
+        <title>Verify Your Email | Host-Age</title>
       </head>
+      <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#101010;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;">
+          <tr><td align="center" style="padding:28px 12px 30px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 
-      <body style="
-        margin:0;
-        padding:0;
-        background-color:#f1f5f9;
-        font-family:Arial,Helvetica,sans-serif;
-        color:#0f172a;
-      ">
+              <!-- HOST-AGE BRAND -->
+              <tr><td align="center" style="padding:10px 10px 54px;">
+                <a href="https://host-age.in" style="text-decoration:none;color:#142f5b;">
+                  <div style="font-size:43px;line-height:1.15;font-weight:800;letter-spacing:-2px;color:#142f5b;">HOST-<span style="color:#245da6;">AGE</span></div>
+                  <div style="margin:5px auto 0;border-top:1px solid #91acd0;max-width:285px;padding-top:5px;font-size:14px;color:#17396d;">Hosting Solutions Simplified</div>
+                </a>
+              </td></tr>
 
-        <table role="presentation" width="100%"
-          cellpadding="0" cellspacing="0"
-          style="background:#f1f5f9;padding:32px 12px;">
-          <tr>
-            <td align="center">
+              <!-- MAIN BLUE PANEL -->
+              <tr><td style="padding:28px 22px 25px;background:#eaf5ff;background-image:linear-gradient(180deg,#d9edff 0%,#edf7ff 72%,#ffffff 100%);border-radius:22px 22px 0 0;">
+                <p style="margin:22px 0 18px;font-size:16px;letter-spacing:3px;color:#0068c9;">VERIFICATION CODE</p>
+                <h1 style="margin:0 0 18px;font-size:32px;line-height:1.2;color:#142f5b;">Verify Your<br><span style="color:#2176d2;">Email Address</span></h1>
+                <p style="margin:0 0 28px;font-size:15px;line-height:1.55;color:#111111;">Use the verification code below to complete your sign in and secure your account.</p>
 
-              <table role="presentation" width="100%"
-                cellpadding="0" cellspacing="0"
-                style="
-                  max-width:560px;
-                  background:#ffffff;
-                  border:1px solid #e2e8f0;
-                  border-radius:14px;
-                  overflow:hidden;
-                ">
-
-                <!-- BRAND HEADER -->
-                <tr>
-                  <td align="center" style="padding:30px 24px 24px;">
-                    <div style="
-                      display:inline-block;
-                      background:#2563eb;
-                      color:#ffffff;
-                      padding:10px 14px;
-                      border-radius:10px;
-                      font-size:20px;
-                      font-weight:bold;
-                      letter-spacing:-0.5px;
-                    ">
-                      Host-Age
-                    </div>
-
-                    <p style="
-                      margin:12px 0 0;
-                      color:#64748b;
-                      font-size:11px;
-                      letter-spacing:1.5px;
-                    ">
-                      HOSTING · DOMAINS · BUSINESS EMAIL
-                    </p>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="padding:0 32px;">
-                    <div style="height:1px;background:#e2e8f0;"></div>
-                  </td>
-                </tr>
-
-                <!-- MAIN CONTENT -->
-                <tr>
-                  <td style="padding:32px 32px 20px;">
-
-                    <div style="
-                      width:52px;
-                      height:52px;
-                      line-height:52px;
-                      text-align:center;
-                      background:#eff6ff;
-                      border-radius:14px;
-                      color:#2563eb;
-                      font-size:25px;
-                      font-weight:bold;
-                    ">
-                      ✓
-                    </div>
-
-                    <h1 style="
-                      margin:24px 0 14px;
-                      font-size:27px;
-                      line-height:1.3;
-                      letter-spacing:-0.6px;
-                      color:#0f172a;
-                    ">
-                      Verify your email address
-                    </h1>
-
-                    <p style="
-                      margin:0 0 16px;
-                      font-size:15px;
-                      line-height:1.8;
-                      color:#475569;
-                    ">
-                      Hello there,
-                    </p>
-
-                    <p style="
-                      margin:0 0 24px;
-                      font-size:15px;
-                      line-height:1.8;
-                      color:#475569;
-                    ">
-                      Welcome to Host-Age! Use the verification
-                      code below to confirm your email address
-                      and continue setting up your account.
-                    </p>
-
-                    <!-- OTP CARD -->
-                    <table role="presentation" width="100%"
-                      cellpadding="0" cellspacing="0"
-                      style="
-                        background:#f8fafc;
-                        border:1px solid #dbeafe;
-                        border-radius:12px;
-                      ">
-                      <tr>
-                        <td align="center" style="padding:24px 16px;">
-
-                          <p style="
-                            margin:0 0 14px;
-                            color:#64748b;
-                            font-size:11px;
-                            font-weight:bold;
-                            letter-spacing:1.5px;
-                          ">
-                            YOUR VERIFICATION CODE
-                          </p>
-
-                          <p style="
-                            margin:0;
-                            color:#2563eb;
-                            font-size:34px;
-                            line-height:1.4;
-                            font-weight:bold;
-                            letter-spacing:8px;
-                            font-family:Arial,Helvetica,sans-serif;
-                          ">
-                            ${cleanOtp}
-                          </p>
-
-                          <p style="
-                            margin:14px 0 0;
-                            color:#64748b;
-                            font-size:13px;
-                          ">
-                            This code expires in 10 minutes.
-                          </p>
-
-                        </td>
-                      </tr>
+                <!-- Decorative server illustration made with email-safe tables -->
+                <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 28px;">
+                  <tr><td align="center" style="padding:0 0 0 22px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#bfe5ff;border-radius:40px 40px 26px 26px;">
+                      <tr><td style="padding:15px 16px 8px;">
+                        <table role="presentation" cellpadding="0" cellspacing="5" border="0" style="background:#1975c9;border-radius:9px;padding:5px;box-shadow:0 5px 0 #0c4c91;">
+                          <tr><td style="width:82px;height:19px;background:#163f70;border-radius:5px;border:1px solid #6cbcff;"></td><td style="width:32px;background:#102f56;border-radius:5px;text-align:center;color:#38d9ff;font-size:12px;">●●●</td></tr>
+                          <tr><td style="height:19px;background:#163f70;border-radius:5px;border:1px solid #6cbcff;"></td><td style="background:#102f56;border-radius:5px;text-align:center;color:#38d9ff;font-size:12px;">●●●</td></tr>
+                          <tr><td style="height:19px;background:#163f70;border-radius:5px;border:1px solid #6cbcff;"></td><td style="background:#102f56;border-radius:5px;text-align:center;color:#38d9ff;font-size:12px;">●●●</td></tr>
+                        </table>
+                      </td></tr>
+                      <tr><td align="center" style="padding:0 0 12px;font-size:12px;color:#1763a8;font-weight:bold;">SECURE CLOUD HOSTING</td></tr>
                     </table>
+                  </td></tr>
+                </table>
 
-                    <!-- SECURITY NOTICE -->
-                    <table role="presentation" width="100%"
-                      cellpadding="0" cellspacing="0"
-                      style="margin-top:24px;">
-                      <tr>
-                        <td width="30" valign="top"
-                          style="color:#2563eb;font-size:18px;">
-                          &#128274;
-                        </td>
-                        <td style="
-                          color:#475569;
-                          font-size:13px;
-                          line-height:1.8;
-                        ">
-                          <strong style="color:#0f172a;">
-                            Keep your code secure.
-                          </strong>
-                          Never share this code with anyone.
-                          Host-Age will never ask you to disclose
-                          your verification code over the phone.
-                        </td>
-                      </tr>
-                    </table>
+                <!-- OTP CARD -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:15px;">
+                  <tr><td align="center" style="padding:32px 12px;">
+                    <p style="margin:0 0 22px;color:#4b6e9d;font-size:14px;font-weight:bold;letter-spacing:3px;">YOUR VERIFICATION CODE</p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background:#eaf3ff;border-radius:14px;padding:8px 12px;">
+                      <span style="font-size:clamp(32px,8vw,54px);line-height:1.35;font-weight:bold;letter-spacing:5px;color:#17396d;white-space:nowrap;">${cleanOtp.split("").join(" ")}</span>
+                    </td></tr></table>
+                    <p style="margin:28px 0 0;color:#111111;font-size:14px;line-height:1.6;">This code is valid for <strong>10 minutes.</strong></p>
+                  </td></tr>
+                </table>
+              </td></tr>
 
-                    <p style="
-                      margin:26px 0 0;
-                      color:#64748b;
-                      font-size:13px;
-                      line-height:1.8;
-                    ">
-                      Didn't request this verification?
-                      You can safely ignore this email.
-                      Your account will not be verified using
-                      this email alone.
-                    </p>
+              <!-- HOW TO USE -->
+              <tr><td style="padding:30px 25px 25px;">
+                <h2 style="margin:0 0 34px;font-size:28px;line-height:1.25;color:#080808;">How to Use This Code</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr><td width="62" valign="top" style="padding:0 0 27px;"><div style="width:48px;height:48px;line-height:48px;text-align:center;background:#deedff;border-radius:50%;color:#0755a0;font-size:24px;font-weight:bold;">1</div></td><td valign="middle" style="padding:0 0 27px;font-size:16px;line-height:1.5;">Go back to the <strong>Host-Age</strong> website or app.</td></tr>
+                  <tr><td width="62" valign="top" style="padding:0 0 27px;"><div style="width:48px;height:48px;line-height:48px;text-align:center;background:#deedff;border-radius:50%;color:#0755a0;font-size:24px;font-weight:bold;">2</div></td><td valign="middle" style="padding:0 0 27px;font-size:16px;line-height:1.5;">Enter the 6-digit code in the verification field.</td></tr>
+                  <tr><td width="62" valign="top"><div style="width:48px;height:48px;line-height:48px;text-align:center;background:#deedff;border-radius:50%;color:#0755a0;font-size:24px;font-weight:bold;">3</div></td><td valign="middle" style="font-size:16px;line-height:1.5;">Complete your sign in.</td></tr>
+                </table>
+              </td></tr>
 
-                  </td>
-                </tr>
+              <!-- SECURITY CARD -->
+              <tr><td style="padding:15px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#edf5ff;border-radius:16px;">
+                  <tr><td width="105" align="center" valign="middle" style="padding:22px 10px;"><div style="width:76px;height:76px;line-height:76px;text-align:center;background:#ffffff;border-radius:50%;font-size:34px;">&#128274;</div></td>
+                  <td valign="middle" style="padding:22px 15px 22px 5px;"><h3 style="margin:0 0 10px;font-size:16px;color:#07396f;">Keep Your Account Secure</h3><p style="margin:0;color:#111111;font-size:13px;line-height:1.5;">Do not share this code with anyone. Our team will never ask for your verification code.</p></td></tr>
+                </table>
+              </td></tr>
 
-                <!-- FOOTER -->
-                <tr>
-                  <td style="
-                    padding:24px 20px;
-                    background:#f8fafc;
-                    border-top:1px solid #e2e8f0;
-                    text-align:center;
-                  ">
-                    <p style="
-                      margin:0 0 8px;
-                      color:#334155;
-                      font-size:13px;
-                      font-weight:bold;
-                    ">
-                      Host-Age
-                    </p>
+              <!-- SUPPORT CARD -->
+              <tr><td style="padding:15px 0 30px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#edf5ff;border-radius:16px;">
+                  <tr><td width="105" align="center" valign="top" style="padding:25px 10px;"><div style="width:76px;height:76px;line-height:76px;text-align:center;background:#ffffff;border-radius:50%;font-size:34px;">&#128172;</div></td>
+                  <td valign="top" style="padding:27px 15px 25px 5px;"><h3 style="margin:0 0 12px;font-size:16px;color:#07396f;">Need Help?</h3><p style="margin:0 0 16px;color:#111111;font-size:13px;line-height:1.5;">If you didn't request this code or are having trouble verifying your email, our support team is here to help.</p><a href="https://host-age.in" style="display:inline-block;background:#0751a0;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:11px 25px;border-radius:24px;">Chat Support &rarr;</a></td></tr>
+                </table>
+              </td></tr>
 
-                    <p style="
-                      margin:0 0 12px;
-                      color:#64748b;
-                      font-size:12px;
-                      line-height:1.7;
-                    ">
-                      Secure hosting. Professional email.
-                    </p>
+              <!-- SERVICE BENEFITS -->
+              <tr><td style="padding:15px 0 28px;border-top:1px solid #cccccc;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                  <td align="center" width="25%" style="padding:25px 2px 0;"><div style="width:62px;height:62px;line-height:62px;border-radius:50%;background:#e2efff;font-size:29px;">&#9729;</div><p style="margin:14px 0 0;font-size:13px;line-height:1.4;">Reliable<br>Hosting</p></td>
+                  <td align="center" width="25%" style="padding:25px 2px 0;"><div style="width:62px;height:62px;line-height:62px;border-radius:50%;background:#e2efff;font-size:29px;">&#10004;</div><p style="margin:14px 0 0;font-size:13px;line-height:1.4;">Secure<br>Infrastructure</p></td>
+                  <td align="center" width="25%" style="padding:25px 2px 0;"><div style="width:62px;height:62px;line-height:62px;border-radius:50%;background:#e2efff;font-size:29px;">&#9889;</div><p style="margin:14px 0 0;font-size:13px;line-height:1.4;">High<br>Performance</p></td>
+                  <td align="center" width="25%" style="padding:25px 2px 0;"><div style="width:62px;height:62px;line-height:62px;border-radius:50%;background:#e2efff;font-size:29px;">&#9881;</div><p style="margin:14px 0 0;font-size:13px;line-height:1.4;">Expert<br>Support</p></td>
+                </tr></table>
+              </td></tr>
 
-                    <a href="https://host-age.in"
-                      style="
-                        color:#2563eb;
-                        font-size:12px;
-                        text-decoration:none;
-                      ">
-                      www.host-age.in
-                    </a>
+              <!-- FOOTER -->
+              <tr>
+  <td align="center" style="background:#142f5b;border-radius:22px;padding:28px 20px;color:#ffffff;">
+    <p style="margin:0 0 22px;font-size:13px;line-height:1.8;">
+      <a href="https://www.linkedin.com/" style="color:#ffffff;text-decoration:none;">LinkedIn</a>&nbsp;&nbsp; | &nbsp;&nbsp;
+      <a href="https://www.instagram.com/" style="color:#ffffff;text-decoration:none;">Instagram</a>&nbsp;&nbsp; | &nbsp;&nbsp;
 
-                    <p style="
-                      margin:16px 0 0;
-                      color:#94a3b8;
-                      font-size:11px;
-                    ">
-                      © 2026 Host-Age. All rights reserved.
-                    </p>
-                  </td>
-                </tr>
-
-              </table>
-
-              <p style="
-                margin:18px 0 0;
-                color:#94a3b8;
-                font-size:11px;
-                text-align:center;
-                line-height:1.7;
-              ">
-                This is an automated message.
-                Please do not reply to this email.
-              </p>
-
-            </td>
-          </tr>
+      <a href="https://www.youtube.com/" style="color:#ffffff;text-decoration:none;">YouTube</a>
+    </p>
+  </td>
+</tr>
+            </table>
+          </td></tr>
         </table>
-
       </body>
       </html>
       `,
@@ -335,6 +179,7 @@ https://host-age.in
     throw err;
   }
 };
+
 
 // RESET PASSWORD EMAIL
 // ==========================
