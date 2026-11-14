@@ -8,24 +8,20 @@ const Domain = sequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
     },
-
     domain: {
       type: DataTypes.STRING(253),
       allowNull: false,
       unique: true,
     },
-
     verificationToken: {
       type: DataTypes.STRING(64),
       allowNull: false,
     },
-
     verified: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
     },
-
     status: {
       type: DataTypes.ENUM(
         "pending",
@@ -36,24 +32,20 @@ const Domain = sequelize.define(
       allowNull: false,
       defaultValue: "pending",
     },
-
     autoRenew: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
     },
-
     expiryDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-
     renewalPrice: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
-
     renewalStatus: {
       type: DataTypes.ENUM(
         "ACTIVE",
@@ -65,12 +57,10 @@ const Domain = sequelize.define(
       allowNull: false,
       defaultValue: "ACTIVE",
     },
-
     nextRenewalDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-
     payment: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -84,7 +74,6 @@ const Domain = sequelize.define(
         paidAt: null,
       },
     },
-
     crawler: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -95,7 +84,6 @@ const Domain = sequelize.define(
         issues: [],
       },
     },
-
     moderation: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -106,7 +94,6 @@ const Domain = sequelize.define(
         flags: {},
       },
     },
-
     technology: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -118,7 +105,6 @@ const Domain = sequelize.define(
         server: null,
       },
     },
-
     metrics: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -140,25 +126,31 @@ const Domain = sequelize.define(
         provisionedAt: null,
       },
     },
+    websiteDeployment: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {
+        uploadStatus: "not_uploaded",
+        originalFileName: null,
+        fileSize: 0,
+        storagePath: null,
+        extractionStatus: "not_started",
+        extractedPath: null,
+        deploymentStatus: "not_started",
+        deploymentId: null,
+        deployedAt: null,
+        lastError: null,
+      },
+    },
   },
   {
     tableName: "domains",
     timestamps: true,
-
     indexes: [
-      {
-        unique: true,
-        fields: ["domain"],
-      },
-      {
-        fields: ["userId"],
-      },
-      {
-        fields: ["status"],
-      },
-      {
-        fields: ["expiryDate"],
-      },
+      { unique: true, fields: ["domain"] },
+      { fields: ["userId"] },
+      { fields: ["status"] },
+      { fields: ["expiryDate"] },
     ],
   }
 );

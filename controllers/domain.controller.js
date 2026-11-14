@@ -1,8 +1,20 @@
+
+const fs = require("fs");
 const service = require("../services/domian.service");
 
-const parseJsonArray = (value, fallback = []) => {
+const parseJsonArray = (value, fieldName) => {
   if (value === undefined || value === null || value === "") {
-    return fallback;
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    const error = new Error(`${fieldName} must be a valid JSON array`);
+    error.status = 400;
+    throw error;
   }
 
   try {
@@ -13,18 +25,53 @@ const parseJsonArray = (value, fallback = []) => {
     }
 
     return parsed;
-  } catch {
-    throw new Error("Invalid JSON array");
+  } catch (_) {
+    const error = new Error(`Invalid ${fieldName} JSON array`);
+    error.status = 400;
+    throw error;
   }
 };
 
-exports.uploadDomain = async (req, res) => {
-  try {
-    const userId = req.user?.id;
+const getErrorStatus = (error) => {
+  if (
+    Number.isInteger(error.status) &&
+    error.status >= 400 &&
+    error.status <= 599
+  ) {
+    return error.status;
+  }
 
-    // =========================
-    // AUTH CHECK
-    // =========================
+  if (
+    Number.isInteger(error.statusCode) &&
+    error.statusCode >= 400 &&
+    error.statusCode <= 599
+  ) {
+    return error.statusCode;
+  }
+
+  const message = error.message || "";
+
+  if (message === "Domain already exists") return 409;
+
+  if (
+    message.includes("Invalid domain") ||
+    message.includes("Invalid ZIP") ||
+    message.includes("ZIP file") ||
+    message.includes("Domain is required") ||
+    message.includes("Domain or ZIP")
+  ) {
+    return 400;
+  }
+
+  return 500;
+};
+
+exports.uploadDomain = async (req, res) => {
+  const userId = req.user?.id;
+  const zipFile = req.file;
+
+  try {
+    // Authentication check
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -32,48 +79,43 @@ exports.uploadDomain = async (req, res) => {
       });
     }
 
-    // =========================
-    // PARSE REQUEST DATA
-    // =========================
-    let domains;
-    let businessEmails;
-
-    try {
-      domains = parseJsonArray(req.body?.domains);
-      businessEmails = parseJsonArray(req.body?.businessEmails);
-    } catch (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
+    // Domain validation
     const domain = req.body?.domain;
-    const zipFile = req.file;
 
-    // =========================
-    // DOMAIN / ZIP CHECK
-    // =========================
-    if ((!domain || !domain.trim()) && !zipFile) {
+    if (
+      !domain ||
+      typeof domain !== "string" ||
+      !domain.trim()
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Domain or ZIP file is required",
+        message: "Domain is required",
       });
     }
 
-    // =========================
-    // NORMALIZE DOMAIN
-    // =========================
-    const cleanDomain = domain
-      ? domain.trim().toLowerCase()
-      : null;
+    // Parse multipart JSON fields
+    const domains = parseJsonArray(
+      req.body?.domains,
+      "domains"
+    );
 
-    // =========================
-    // SERVICE CALL
-    // =========================
+    const businessEmails = parseJsonArray(
+      req.body?.businessEmails,
+      "businessEmails"
+    );
+
+    // ZIP validation
+    if (!zipFile || !zipFile.path) {
+      return res.status(400).json({
+        success: false,
+        message: "Website ZIP file is required",
+      });
+    }
+
+    // Process website upload
     const result = await service.uploadDomain(
       userId,
-      cleanDomain,
+      domain.trim().toLowerCase(),
       zipFile,
       {
         domains,
@@ -85,24 +127,49 @@ exports.uploadDomain = async (req, res) => {
       }
     );
 
-    // =========================
-    // SUCCESS
-    // =========================
     return res.status(201).json({
       success: true,
-      message: "Domain upload processed",
-      hostingStatus: result.hostingStatus,
-      data: result,
+      message: "Website ZIP uploaded and validated",
+      data: {
+        id: result.id,
+        domain: result.domain,
+        status: result.status,
+        hostingStatus: result.hostingStatus,
+        websiteDeployment: result.websiteDeployment,
+      },
     });
   } catch (error) {
+    const status = getErrorStatus(error);
+
     console.error("DOMAIN UPLOAD ERROR:", {
       message: error.message,
-      userId: req.user?.id,
+      status,
+      userId,
+      domain: req.body?.domain || null,
     });
 
-    return res.status(500).json({
+    return res.status(status).json({
       success: false,
-      message: "Failed to upload domain",
+      message:
+        status >= 500
+          ? "Failed to process website upload"
+          : error.message,
     });
+  } finally {
+    // Remove temporary ZIP if it still exists.
+    // If the service moved it to permanent storage,
+    // this temporary path will no longer exist.
+    if (zipFile?.path) {
+      try {
+        await fs.promises.unlink(zipFile.path);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          console.error(
+            "TEMP ZIP CLEANUP ERROR:",
+            error.message
+          );
+        }
+      }
+    }
   }
 };
