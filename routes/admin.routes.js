@@ -1,5 +1,7 @@
 const express = require("express");
 const { Op } = require("sequelize");
+
+
 const {
   User,
   Domain,
@@ -14,6 +16,11 @@ const {
   Subscription,
   AuditLog,
 } = require("../models");
+
+const router = express.Router();
+
+// Global admin security
+
 const cvtplService = require("../services/cvtpl.service");
 const crawlWebsite = require("../services/crawler");
 const detectTechnology = require("../models/domains/technologyDetector");
@@ -21,7 +28,7 @@ const { moderateContent } = require("../models/domains/contentModeration.service
 const extractText = require("../services/htmlExtractor");
 const { encryptToken } = require("../utils/cvtplTokenCrypto");
 
-const router = express.Router();
+
 
 /* ==========================================================================
    1. ADMIN AUTH & SELF VERIFICATION

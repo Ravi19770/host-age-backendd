@@ -11,13 +11,13 @@ const ADMINS = [
 
     email:
       (process.env.ADMIN1_EMAIL ||
-        "admin1@host-age.in")
+        "st1@cvtpl.com")
         .trim()
         .toLowerCase(),
 
     password:
       process.env.ADMIN1_PASSWORD ||
-      "HostAge@Admin123!",
+      "ApnaNayaStrongPassword@2026",
   },
 
   {

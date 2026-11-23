@@ -18,6 +18,7 @@ const rateLimit = require("express-rate-limit");
 const authMiddleware = require("./middleware/Auth.js");
 const role = require("./middleware/role.middleware.js");
 const adminRoutes = require("./routes/admin.routes.js");
+const ownerMiddleware = require("./middleware/owner.middleware.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -109,7 +110,13 @@ app.use(express.urlencoded({
 
 app.use("/api/ai", aiRoutes);
 app.use("/api/tickets", ticketRoutes);
-app.use("/api/admin", authMiddleware, role("ADMIN"), adminRoutes);
+app.use(
+  "/api/admin",
+  authMiddleware,
+  role("ADMIN"),
+  ownerMiddleware,
+  adminRoutes
+);
 app.use("/api/domains", domainRoutes);
 console.log("✅ domain.routes.js loaded");
 console.log("✅ ticket.routes.js loaded");
@@ -596,6 +603,18 @@ app.post("/api/auth/login", async (req, res) => {
       },
     });
 
+    console.log("========== LOGIN DEBUG ==========");
+console.log("Input email:", normalizedEmail);
+console.log("User found:", !!user);
+
+if (user) {
+  console.log("User ID:", user.id);
+  console.log("Stored password exists:", !!user.password);
+  console.log("Password hash format:", user.password?.substring(0, 7));
+  console.log("Password hash length:", user.password?.length);
+}
+console.log("=================================");
+
     // Don't reveal whether email exists
     if (!user) {
       return res.status(401).json({
@@ -1033,6 +1052,15 @@ async function startServer() {
       console.log("ℹ️ Production DB sync skipped");
     }
 
+
+    const [dbInfo] = await sequelize.query(`
+  SELECT
+    current_database() AS database_name,
+    current_user AS database_user,
+    session_user AS session_user
+`);
+
+console.log("DATABASE CONNECTION INFO:", dbInfo[0]);
     // ================= START HTTP SERVER =================
 
     const server = app.listen(
@@ -1097,20 +1125,60 @@ process.on("unhandledRejection", (reason) => {
 // ================= GRACEFUL SHUTDOWN =================
 
 
-async function gracefulShutdown(signal) {
-  console.log(`⚠️ ${signal} RECEIVED`);
 
+
+// ================= GRACEFUL SHUTDOWN =================
+
+let isShuttingDown = false;
+let httpServer = null;
+
+async function gracefulShutdown(signal) {
+  if (isShuttingDown) {
+    console.log("Shutdown already in progress...");
+    return;
+  }
+
+  isShuttingDown = true;
+
+  console.log(`\n⚠️ ${signal} RECEIVED`);
+  console.log("Starting graceful shutdown...");
+
+  // 1. Stop scheduled DNS verification
+  try {
+    stopDnsVerificationJob();
+    console.log("✅ DNS verification job stopped");
+  } catch (error) {
+    console.error("DNS job shutdown error:", error.message);
+  }
+
+  // 2. Stop accepting new HTTP requests
+  if (httpServer) {
+    await new Promise((resolve) => {
+      httpServer.close((error) => {
+        if (error) {
+          console.error("HTTP server shutdown error:", error.message);
+        } else {
+          console.log("✅ HTTP server closed");
+        }
+        resolve();
+      });
+
+      // Prevent shutdown from hanging indefinitely
+      httpServer.closeIdleConnections?.();
+    });
+  }
+
+  // 3. Close PostgreSQL after HTTP requests finish
   try {
     await sequelize.close();
     console.log("✅ PostgreSQL connection closed");
   } catch (error) {
-    console.error("❌ Error closing PostgreSQL:", error);
+    console.error("❌ Error closing PostgreSQL:", error.message);
     process.exitCode = 1;
   }
 
-  if (process.exitCode !== 1) {
-    process.exitCode = 0;
-  }
+  console.log("✅ Graceful shutdown completed");
+  process.exit();
 }
 
 process.on("SIGINT", () => {
@@ -1120,6 +1188,7 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
   void gracefulShutdown("SIGTERM");
 });
+
 
 
 // ================= START =================
